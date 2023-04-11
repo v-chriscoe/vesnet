@@ -1,0 +1,1007 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 800px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 800px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="412549121">412549121</option>
+                                
+                                    <option value="374245000">374245000</option>
+                                
+                                    <option value="412549122">412549122</option>
+                                
+                                    <option value="373360000">373360000</option>
+                                
+                                    <option value="412354049">412354049</option>
+                                
+                                    <option value="412435461">412435461</option>
+                                
+                                    <option value="257621000">257621000</option>
+                                
+                                    <option value="412421128">412421128</option>
+                                
+                                    <option value="371812000">371812000</option>
+                                
+                                    <option value="412435469">412435469</option>
+                                
+                                    <option value="412421133">412421133</option>
+                                
+                                    <option value="1054034448">1054034448</option>
+                                
+                                    <option value="412549139">412549139</option>
+                                
+                                    <option value="412421144">412421144</option>
+                                
+                                    <option value="412421145">412421145</option>
+                                
+                                    <option value="416004638">416004638</option>
+                                
+                                    <option value="224724000">224724000</option>
+                                
+                                    <option value="412439588">412439588</option>
+                                
+                                    <option value="416164900">416164900</option>
+                                
+                                    <option value="412549158">412549158</option>
+                                
+                                    <option value="412331052">412331052</option>
+                                
+                                    <option value="356609000">356609000</option>
+                                
+                                    <option value="412420653">412420653</option>
+                                
+                                    <option value="412331053">412331053</option>
+                                
+                                    <option value="412549165">412549165</option>
+                                
+                                    <option value="412421173">412421173</option>
+                                
+                                    <option value="412421175">412421175</option>
+                                
+                                    <option value="412421177">412421177</option>
+                                
+                                    <option value="412331066">412331066</option>
+                                
+                                    <option value="412421178">412421178</option>
+                                
+                                    <option value="416240700">416240700</option>
+                                
+                                    <option value="416253500">416253500</option>
+                                
+                                    <option value="416244800">416244800</option>
+                                
+                                    <option value="412331078">412331078</option>
+                                
+                                    <option value="412331079">412331079</option>
+                                
+                                    <option value="354458000">354458000</option>
+                                
+                                    <option value="412421192">412421192</option>
+                                
+                                    <option value="416004684">416004684</option>
+                                
+                                    <option value="412331089">412331089</option>
+                                
+                                    <option value="412331091">412331091</option>
+                                
+                                    <option value="416004693">416004693</option>
+                                
+                                    <option value="412333655">412333655</option>
+                                
+                                    <option value="416243800">416243800</option>
+                                
+                                    <option value="1054034010">1054034010</option>
+                                
+                                    <option value="416005723">416005723</option>
+                                
+                                    <option value="412549215">412549215</option>
+                                
+                                    <option value="416234600">416234600</option>
+                                
+                                    <option value="416006763">416006763</option>
+                                
+                                    <option value="1054034029">1054034029</option>
+                                
+                                    <option value="416005752">416005752</option>
+                                
+                                    <option value="412331128">412331128</option>
+                                
+                                    <option value="416004729">416004729</option>
+                                
+                                    <option value="412421114">412421114</option>
+                                
+                                    <option value="412420378">412420378</option>
+                                
+                                    <option value="412420953">412420953</option>
+                                
+                                    <option value="224301000">224301000</option>
+                                
+                                    <option value="412328784">412328784</option>
+                                
+                                    <option value="412329404">412329404</option>
+                                
+                                    <option value="412424702">412424702</option>
+                                
+                                    <option value="412424547">412424547</option>
+                                
+                                    <option value="412200335">412200335</option>
+                                
+                                    <option value="412200336">412200336</option>
+                                
+                                    <option value="412549049">412549049</option>
+                                
+                                    <option value="412420531">412420531</option>
+                                
+                                    <option value="412420532">412420532</option>
+                                
+                                    <option value="412329696">412329696</option>
+                                
+                                    <option value="412421356">412421356</option>
+                                
+                                    <option value="224374000">224374000</option>
+                                
+                                    <option value="224710000">224710000</option>
+                                
+                                    <option value="412336489">412336489</option>
+                                
+                                    <option value="412549051">412549051</option>
+                                
+                                    <option value="412328799">412328799</option>
+                                
+                                    <option value="412326884">412326884</option>
+                                
+                                    <option value="412328785">412328785</option>
+                                
+                                    <option value="224079000">224079000</option>
+                                
+                                    <option value="416004853">416004853</option>
+                                
+                                    <option value="412420581">412420581</option>
+                                
+                                    <option value="412677320">412677320</option>
+                                
+                                    <option value="412660070">412660070</option>
+                                
+                                    <option value="100900004">100900004</option>
+                                
+                                    <option value="224266000">224266000</option>
+                                
+                                    <option value="412328788">412328788</option>
+                                
+                                    <option value="412320029">412320029</option>
+                                
+                                    <option value="740338000">740338000</option>
+                                
+                                    <option value="740358000">740358000</option>
+                                
+                                    <option value="416006494">416006494</option>
+                                
+                                    <option value="412549112">412549112</option>
+                                
+                                    <option value="412549299">412549299</option>
+                                
+                                    <option value="416004857">416004857</option>
+                                
+                                    <option value="224897000">224897000</option>
+                                
+                                    <option value="416004981">416004981</option>
+                                
+                                    <option value="412420597">412420597</option>
+                                
+                                    <option value="412421041">412421041</option>
+                                
+                                    <option value="412420315">412420315</option>
+                                
+                                    <option value="412333796">412333796</option>
+                                
+                                    <option value="412333797">412333797</option>
+                                
+                                    <option value="412333751">412333751</option>
+                                
+                                    <option value="412326889">412326889</option>
+                                
+                                    <option value="412326887">412326887</option>
+                                
+                                    <option value="412206008">412206008</option>
+                                
+                                    <option value="416245500">416245500</option>
+                                
+                                    <option value="416567000">416567000</option>
+                                
+                                    <option value="416251900">416251900</option>
+                                
+                                    <option value="412549095">412549095</option>
+                                
+                                    <option value="412549404">412549404</option>
+                                
+                                    <option value="412331001">412331001</option>
+                                
+                                    <option value="416008893">416008893</option>
+                                
+                                    <option value="412549383">412549383</option>
+                                
+                                    <option value="412331173">412331173</option>
+                                
+                                    <option value="412331209">412331209</option>
+                                
+                                    <option value="416004892">416004892</option>
+                                
+                                    <option value="412420313">412420313</option>
+                                
+                                    <option value="412424703">412424703</option>
+                                
+                                    <option value="412549348">412549348</option>
+                                
+                                    <option value="412333752">412333752</option>
+                                
+                                    <option value="412420573">412420573</option>
+                                
+                                    <option value="416171800">416171800</option>
+                                
+                                    <option value="416250700">416250700</option>
+                                
+                                    <option value="412549116">412549116</option>
+                                
+                                    <option value="412420471">412420471</option>
+                                
+                                    <option value="412549277">412549277</option>
+                                
+                                    <option value="412549278">412549278</option>
+                                
+                                    <option value="416180600">416180600</option>
+                                
+                                    <option value="412549276">412549276</option>
+                                
+                                    <option value="412549275">412549275</option>
+                                
+                                    <option value="412420799">412420799</option>
+                                
+                                    <option value="1054033747">1054033747</option>
+                                
+                                    <option value="1054033781">1054033781</option>
+                                
+                                    <option value="1054033810">1054033810</option>
+                                
+                                    <option value="1054033816">1054033816</option>
+                                
+                                    <option value="1054033843">1054033843</option>
+                                
+                                    <option value="412549053">412549053</option>
+                                
+                                    <option value="412549052">412549052</option>
+                                
+                                    <option value="412420578">412420578</option>
+                                
+                                    <option value="416240500">416240500</option>
+                                
+                                    <option value="416312000">416312000</option>
+                                
+                                    <option value="416251800">416251800</option>
+                                
+                                    <option value="416241500">416241500</option>
+                                
+                                    <option value="416005995">416005995</option>
+                                
+                                    <option value="416004564">416004564</option>
+                                
+                                    <option value="416239600">416239600</option>
+                                
+                                    <option value="416350000">416350000</option>
+                                
+                                    <option value="416005931">416005931</option>
+                                
+                                    <option value="416242600">416242600</option>
+                                
+                                    <option value="416253700">416253700</option>
+                                
+                                    <option value="416007978">416007978</option>
+                                
+                                    <option value="416005006">416005006</option>
+                                
+                                    <option value="416005510">416005510</option>
+                                
+                                    <option value="416004889">416004889</option>
+                                
+                                    <option value="1054034089">1054034089</option>
+                                
+                                    <option value="416004775">416004775</option>
+                                
+                                    <option value="416253600">416253600</option>
+                                
+                                    <option value="416174500">416174500</option>
+                                
+                                    <option value="416241900">416241900</option>
+                                
+                                    <option value="416252900">416252900</option>
+                                
+                                    <option value="416005877">416005877</option>
+                                
+                                    <option value="416236900">416236900</option>
+                                
+                                    <option value="416251600">416251600</option>
+                                
+                                    <option value="416505000">416505000</option>
+                                
+                                    <option value="416005531">416005531</option>
+                                
+                                    <option value="416246500">416246500</option>
+                                
+                                    <option value="416236500">416236500</option>
+                                
+                                    <option value="416004545">416004545</option>
+                                
+                                    <option value="577100000">577100000</option>
+                                
+                                    <option value="577101000">577101000</option>
+                                
+                                    <option value="416005846">416005846</option>
+                                
+                                    <option value="412421059">412421059</option>
+                                
+                                    <option value="224754000">224754000</option>
+                                
+                                    <option value="224770000">224770000</option>
+                                
+                                    <option value="412331284">412331284</option>
+                                
+                                    <option value="412333739">412333739</option>
+                                
+                                    <option value="412420312">412420312</option>
+                                
+                                    <option value="412331279">412331279</option>
+                                
+                                    <option value="1054034570">1054034570</option>
+                                
+                                    <option value="1054034580">1054034580</option>
+                                
+                                    <option value="1054034604">1054034604</option>
+                                
+                                    <option value="1054034663">1054034663</option>
+                                
+                                    <option value="1054034672">1054034672</option>
+                                
+                                    <option value="352349000">352349000</option>
+                                
+                                    <option value="353946000">353946000</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": 412549121, "label": "RUNDA216", "shape": "dot", "size": 10, "title": "MMSI: 412549121\nVessel Name: RUNDA216\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 374245000, "label": "OCEAN SPLENDID", "shape": "dot", "size": 10, "title": "MMSI: 374245000\nVessel Name: OCEAN SPLENDID\nVessel Type: tanker\nTotal_RDV: 209"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549122, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412549122\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 373360000, "label": "ANGEL NO2", "shape": "dot", "size": 10, "title": "MMSI: 373360000\nVessel Name: ANGEL NO2\nVessel Type: tanker\nTotal_RDV: 147"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412354049, "label": "SUYUANYU9", "shape": "dot", "size": 10, "title": "MMSI: 412354049\nVessel Name: SUYUANYU9\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412435461, "label": "OUYA17", "shape": "dot", "size": 10, "title": "MMSI: 412435461\nVessel Name: OUYA17\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 257621000, "label": "ANTARCTIC PROVIDER", "shape": "dot", "size": 10, "title": "MMSI: 257621000\nVessel Name: ANTARCTIC PROVIDER\nVessel Type: cargo\nTotal_RDV: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421128, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421128\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 371812000, "label": "FRIO POSEIDON", "shape": "dot", "size": 10, "title": "MMSI: 371812000\nVessel Name: FRIO POSEIDON\nVessel Type: fish_carrier\nTotal_RDV: 40"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412435469, "label": "OUYA18", "shape": "dot", "size": 10, "title": "MMSI: 412435469\nVessel Name: OUYA18\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421133, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421133\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034448, "label": "Unknown_dark_rdv_1054034448.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034448\nVessel Name: Unknown_dark_rdv_1054034448.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549139, "label": "ZHE PU YUAN 67", "shape": "dot", "size": 10, "title": "MMSI: 412549139\nVessel Name: ZHE PU YUAN 67\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421144, "label": "SHUN ZHE NO.83", "shape": "dot", "size": 10, "title": "MMSI: 412421144\nVessel Name: SHUN ZHE NO.83\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421145, "label": "SHUN  ZE  86", "shape": "dot", "size": 10, "title": "MMSI: 412421145\nVessel Name: SHUN  ZE  86\nVessel Type: fishing\nTotal_RDV: 4"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004638, "label": "MAN SHUEN FA", "shape": "dot", "size": 10, "title": "MMSI: 416004638\nVessel Name: MAN SHUEN FA\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224724000, "label": "PLAYA DE TAMBO", "shape": "dot", "size": 10, "title": "MMSI: 224724000\nVessel Name: PLAYA DE TAMBO\nVessel Type: fish_factory\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412439588, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412439588\nVessel Name: Unknown\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416164900, "label": "FU KUO NO.1", "shape": "dot", "size": 10, "title": "MMSI: 416164900\nVessel Name: FU KUO NO.1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549158, "label": "SHUNZE85", "shape": "dot", "size": 10, "title": "MMSI: 412549158\nVessel Name: SHUNZE85\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331052, "label": "JING YUAN 616", "shape": "dot", "size": 10, "title": "MMSI: 412331052\nVessel Name: JING YUAN 616\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 356609000, "label": "FRIO LAS PALMAS", "shape": "dot", "size": 10, "title": "MMSI: 356609000\nVessel Name: FRIO LAS PALMAS\nVessel Type: fish_carrier\nTotal_RDV: 40"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420653, "label": "NINGTAI28", "shape": "dot", "size": 10, "title": "MMSI: 412420653\nVessel Name: NINGTAI28\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331053, "label": "JING YUAN 618", "shape": "dot", "size": 10, "title": "MMSI: 412331053\nVessel Name: JING YUAN 618\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549165, "label": "MING XIANG 889", "shape": "dot", "size": 10, "title": "MMSI: 412549165\nVessel Name: MING XIANG 889\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421173, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421173\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421175, "label": "HENG XIN 78", "shape": "dot", "size": 10, "title": "MMSI: 412421175\nVessel Name: HENG XIN 78\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421177, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421177\nVessel Name: Unknown\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331066, "label": "LU RONG YUAN YU 897,", "shape": "dot", "size": 10, "title": "MMSI: 412331066\nVessel Name: LU RONG YUAN YU 897,\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421178, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421178\nVessel Name: Unknown\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416240700, "label": "FU KUO NO106", "shape": "dot", "size": 10, "title": "MMSI: 416240700\nVessel Name: FU KUO NO106\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416253500, "label": "WIN FAR SHENG NO.3", "shape": "dot", "size": 10, "title": "MMSI: 416253500\nVessel Name: WIN FAR SHENG NO.3\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416244800, "label": "PEI YUH NO18", "shape": "dot", "size": 10, "title": "MMSI: 416244800\nVessel Name: PEI YUH NO18\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331078, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412331078\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331079, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412331079\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 354458000, "label": "BAO LUCKY", "shape": "dot", "size": 10, "title": "MMSI: 354458000\nVessel Name: BAO LUCKY\nVessel Type: fish_carrier\nTotal_RDV: 12"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421192, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421192\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004684, "label": "WIN FAR HUI 6", "shape": "dot", "size": 10, "title": "MMSI: 416004684\nVessel Name: WIN FAR HUI 6\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331089, "label": "JING YUAN 626", "shape": "dot", "size": 10, "title": "MMSI: 412331089\nVessel Name: JING YUAN 626\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331091, "label": "JING YUAN628", "shape": "dot", "size": 10, "title": "MMSI: 412331091\nVessel Name: JING YUAN628\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004693, "label": "WIN FAR YING 8", "shape": "dot", "size": 10, "title": "MMSI: 416004693\nVessel Name: WIN FAR YING 8\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412333655, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412333655\nVessel Name: Unknown\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416243800, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416243800\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034010, "label": "Unknown_dark_rdv_1054034010.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034010\nVessel Name: Unknown_dark_rdv_1054034010.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005723, "label": "HSIANG YUN WANG", "shape": "dot", "size": 10, "title": "MMSI: 416005723\nVessel Name: HSIANG YUN WANG\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549215, "label": "WANXIN76", "shape": "dot", "size": 10, "title": "MMSI: 412549215\nVessel Name: WANXIN76\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416234600, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416234600\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416006763, "label": "SHUENN MAN NO.23", "shape": "dot", "size": 10, "title": "MMSI: 416006763\nVessel Name: SHUENN MAN NO.23\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034029, "label": "Unknown_dark_rdv_1054034029.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034029\nVessel Name: Unknown_dark_rdv_1054034029.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005752, "label": "GUO TONG 101", "shape": "dot", "size": 10, "title": "MMSI: 416005752\nVessel Name: GUO TONG 101\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331128, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412331128\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004729, "label": "AN FONG NO.158", "shape": "dot", "size": 10, "title": "MMSI: 416004729\nVessel Name: AN FONG NO.158\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421114, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421114\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420378, "label": "HUA LI 16", "shape": "dot", "size": 10, "title": "MMSI: 412420378\nVessel Name: HUA LI 16\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420953, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412420953\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224301000, "label": "IVAN NORES", "shape": "dot", "size": 10, "title": "MMSI: 224301000\nVessel Name: IVAN NORES\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412328784, "label": "WEI YU19", "shape": "dot", "size": 10, "title": "MMSI: 412328784\nVessel Name: WEI YU19\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412329404, "label": "LUWEIYUANYU018", "shape": "dot", "size": 10, "title": "MMSI: 412329404\nVessel Name: LUWEIYUANYU018\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412424702, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412424702\nVessel Name: Unknown\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412424547, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412424547\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412200335, "label": "GUOJI901", "shape": "dot", "size": 10, "title": "MMSI: 412200335\nVessel Name: GUOJI901\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412200336, "label": "GUOJI902", "shape": "dot", "size": 10, "title": "MMSI: 412200336\nVessel Name: GUOJI902\nVessel Type: fishing\nTotal_RDV: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549049, "label": "NING TAI 616", "shape": "dot", "size": 10, "title": "MMSI: 412549049\nVessel Name: NING TAI 616\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420531, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412420531\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420532, "label": "JINGHAIYANG2", "shape": "dot", "size": 10, "title": "MMSI: 412420532\nVessel Name: JINGHAIYANG2\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412329696, "label": "LU RONG YUAN YU 898", "shape": "dot", "size": 10, "title": "MMSI: 412329696\nVessel Name: LU RONG YUAN YU 898\nVessel Type: fishing\nTotal_RDV: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421356, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421356\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224374000, "label": "FARRUCO", "shape": "dot", "size": 10, "title": "MMSI: 224374000\nVessel Name: FARRUCO\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224710000, "label": "FESTEIRO", "shape": "dot", "size": 10, "title": "MMSI: 224710000\nVessel Name: FESTEIRO\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412336489, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412336489\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549051, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412549051\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412328799, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412328799\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412326884, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412326884\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412328785, "label": "WEIYU18", "shape": "dot", "size": 10, "title": "MMSI: 412328785\nVessel Name: WEIYU18\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224079000, "label": "FOLIAS", "shape": "dot", "size": 10, "title": "MMSI: 224079000\nVessel Name: FOLIAS\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004853, "label": "HER HUNG NO.168", "shape": "dot", "size": 10, "title": "MMSI: 416004853\nVessel Name: HER HUNG NO.168\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420581, "label": "RUNDA618", "shape": "dot", "size": 10, "title": "MMSI: 412420581\nVessel Name: RUNDA618\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412677320, "label": "JING YUAN 601", "shape": "dot", "size": 10, "title": "MMSI: 412677320\nVessel Name: JING YUAN 601\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412660070, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412660070\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 100900004, "label": "AD AIS TEST SHIP", "shape": "dot", "size": 10, "title": "MMSI: 100900004\nVessel Name: AD AIS TEST SHIP\nVessel Type: cargo\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224266000, "label": "FUNCHO", "shape": "dot", "size": 10, "title": "MMSI: 224266000\nVessel Name: FUNCHO\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412328788, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412328788\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412320029, "label": "JING YUAN 608", "shape": "dot", "size": 10, "title": "MMSI: 412320029\nVessel Name: JING YUAN 608\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 740338000, "label": "IGUELDO", "shape": "dot", "size": 10, "title": "MMSI: 740338000\nVessel Name: IGUELDO\nVessel Type: fish_factory\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 740358000, "label": "CASTELO", "shape": "dot", "size": 10, "title": "MMSI: 740358000\nVessel Name: CASTELO\nVessel Type: fish_factory\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416006494, "label": "FA DA CAI", "shape": "dot", "size": 10, "title": "MMSI: 416006494\nVessel Name: FA DA CAI\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549112, "label": "ZHE PU YUAN 77", "shape": "dot", "size": 10, "title": "MMSI: 412549112\nVessel Name: ZHE PU YUAN 77\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549299, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412549299\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004857, "label": "JAI FA NO.8", "shape": "dot", "size": 10, "title": "MMSI: 416004857\nVessel Name: JAI FA NO.8\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224897000, "label": "FREIREMAR UNO", "shape": "dot", "size": 10, "title": "MMSI: 224897000\nVessel Name: FREIREMAR UNO\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004981, "label": "CHUN FU FA NO.6", "shape": "dot", "size": 10, "title": "MMSI: 416004981\nVessel Name: CHUN FU FA NO.6\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420597, "label": "DONGYU1519", "shape": "dot", "size": 10, "title": "MMSI: 412420597\nVessel Name: DONGYU1519\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421041, "label": "DONG YU NO.1529", "shape": "dot", "size": 10, "title": "MMSI: 412421041\nVessel Name: DONG YU NO.1529\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420315, "label": "JIA DE 6", "shape": "dot", "size": 10, "title": "MMSI: 412420315\nVessel Name: JIA DE 6\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412333796, "label": "LURONGYUANYU667", "shape": "dot", "size": 10, "title": "MMSI: 412333796\nVessel Name: LURONGYUANYU667\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412333797, "label": "LURONGYUANYU669", "shape": "dot", "size": 10, "title": "MMSI: 412333797\nVessel Name: LURONGYUANYU669\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412333751, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412333751\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412326889, "label": "YONG XING 1", "shape": "dot", "size": 10, "title": "MMSI: 412326889\nVessel Name: YONG XING 1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412326887, "label": "TAI XING 1", "shape": "dot", "size": 10, "title": "MMSI: 412326887\nVessel Name: TAI XING 1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412206008, "label": "HAI FENG LONG 9", "shape": "dot", "size": 10, "title": "MMSI: 412206008\nVessel Name: HAI FENG LONG 9\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416245500, "label": "AN FONG 118", "shape": "dot", "size": 10, "title": "MMSI: 416245500\nVessel Name: AN FONG 118\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416567000, "label": "LIAN CHUAN SHENG 66", "shape": "dot", "size": 10, "title": "MMSI: 416567000\nVessel Name: LIAN CHUAN SHENG 66\nVessel Type: fish_carrier\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416251900, "label": "SHIN TORNG SHING", "shape": "dot", "size": 10, "title": "MMSI: 416251900\nVessel Name: SHIN TORNG SHING\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549095, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412549095\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549404, "label": "LUQINGYUANYU 018", "shape": "dot", "size": 10, "title": "MMSI: 412549404\nVessel Name: LUQINGYUANYU 018\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331001, "label": "LUJIAONANYUANYU177", "shape": "dot", "size": 10, "title": "MMSI: 412331001\nVessel Name: LUJIAONANYUANYU177\nVessel Type: cargo\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416008893, "label": "AN FONG NO.868", "shape": "dot", "size": 10, "title": "MMSI: 416008893\nVessel Name: AN FONG NO.868\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549383, "label": "LURONGYUANYU668", "shape": "dot", "size": 10, "title": "MMSI: 412549383\nVessel Name: LURONGYUANYU668\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331173, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412331173\nVessel Name: Unknown\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331209, "label": "LU RONG YUAN YU 883", "shape": "dot", "size": 10, "title": "MMSI: 412331209\nVessel Name: LU RONG YUAN YU 883\nVessel Type: fishing\nTotal_RDV: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004892, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416004892\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420313, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412420313\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412424703, "label": "JIA DE 22", "shape": "dot", "size": 10, "title": "MMSI: 412424703\nVessel Name: JIA DE 22\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549348, "label": "LURONGYUANYU697", "shape": "dot", "size": 10, "title": "MMSI: 412549348\nVessel Name: LURONGYUANYU697\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412333752, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412333752\nVessel Name: Unknown\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420573, "label": "JIADE11", "shape": "dot", "size": 10, "title": "MMSI: 412420573\nVessel Name: JIADE11\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416171800, "label": "FU KUO NO.6", "shape": "dot", "size": 10, "title": "MMSI: 416171800\nVessel Name: FU KUO NO.6\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416250700, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416250700\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549116, "label": "HANYI27", "shape": "dot", "size": 10, "title": "MMSI: 412549116\nVessel Name: HANYI27\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420471, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412420471\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549277, "label": "LU RONG YUAN YU 833", "shape": "dot", "size": 10, "title": "MMSI: 412549277\nVessel Name: LU RONG YUAN YU 833\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549278, "label": "LU RONG YUAN YU 835", "shape": "dot", "size": 10, "title": "MMSI: 412549278\nVessel Name: LU RONG YUAN YU 835\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416180600, "label": "FULL KUO 1 0 1", "shape": "dot", "size": 10, "title": "MMSI: 416180600\nVessel Name: FULL KUO 1 0 1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549276, "label": "LU RONG YUAN YU 832", "shape": "dot", "size": 10, "title": "MMSI: 412549276\nVessel Name: LU RONG YUAN YU 832\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549275, "label": "LU RONG YUAN YU 831", "shape": "dot", "size": 10, "title": "MMSI: 412549275\nVessel Name: LU RONG YUAN YU 831\nVessel Type: fishing\nTotal_RDV: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420799, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412420799\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054033747, "label": "Unknown_dark_rdv_1054033747.0", "shape": "dot", "size": 10, "title": "MMSI: 1054033747\nVessel Name: Unknown_dark_rdv_1054033747.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054033781, "label": "Unknown_dark_rdv_1054033781.0", "shape": "dot", "size": 10, "title": "MMSI: 1054033781\nVessel Name: Unknown_dark_rdv_1054033781.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054033810, "label": "Unknown_dark_rdv_1054033810.0", "shape": "dot", "size": 10, "title": "MMSI: 1054033810\nVessel Name: Unknown_dark_rdv_1054033810.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054033816, "label": "Unknown_dark_rdv_1054033816.0", "shape": "dot", "size": 10, "title": "MMSI: 1054033816\nVessel Name: Unknown_dark_rdv_1054033816.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054033843, "label": "Unknown_dark_rdv_1054033843.0", "shape": "dot", "size": 10, "title": "MMSI: 1054033843\nVessel Name: Unknown_dark_rdv_1054033843.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549053, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412549053\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412549052, "label": "HAI FENG LONG 6", "shape": "dot", "size": 10, "title": "MMSI: 412549052\nVessel Name: HAI FENG LONG 6\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420578, "label": "RUN DA605", "shape": "dot", "size": 10, "title": "MMSI: 412420578\nVessel Name: RUN DA605\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416240500, "label": "AN FONG NO 111", "shape": "dot", "size": 10, "title": "MMSI: 416240500\nVessel Name: AN FONG NO 111\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416312000, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416312000\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416251800, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416251800\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416241500, "label": "AN FONG NO.116", "shape": "dot", "size": 10, "title": "MMSI: 416241500\nVessel Name: AN FONG NO.116\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005995, "label": "YI DA FA", "shape": "dot", "size": 10, "title": "MMSI: 416005995\nVessel Name: YI DA FA\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004564, "label": "CHUN HAO", "shape": "dot", "size": 10, "title": "MMSI: 416004564\nVessel Name: CHUN HAO\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416239600, "label": "LIAN RONG", "shape": "dot", "size": 10, "title": "MMSI: 416239600\nVessel Name: LIAN RONG\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416350000, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416350000\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005931, "label": "ZI DA WANG", "shape": "dot", "size": 10, "title": "MMSI: 416005931\nVessel Name: ZI DA WANG\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416242600, "label": "LIEN  DAR", "shape": "dot", "size": 10, "title": "MMSI: 416242600\nVessel Name: LIEN  DAR\nVessel Type: fishing\nTotal_RDV: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416253700, "label": "ZI DA HSIN", "shape": "dot", "size": 10, "title": "MMSI: 416253700\nVessel Name: ZI DA HSIN\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416007978, "label": "AN FONG NO.888", "shape": "dot", "size": 10, "title": "MMSI: 416007978\nVessel Name: AN FONG NO.888\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005006, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416005006\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005510, "label": "JIA LONG", "shape": "dot", "size": 10, "title": "MMSI: 416005510\nVessel Name: JIA LONG\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004889, "label": "FU CHIAN", "shape": "dot", "size": 10, "title": "MMSI: 416004889\nVessel Name: FU CHIAN\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034089, "label": "Unknown_dark_rdv_1054034089.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034089\nVessel Name: Unknown_dark_rdv_1054034089.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004775, "label": "GUO TONG 3", "shape": "dot", "size": 10, "title": "MMSI: 416004775\nVessel Name: GUO TONG 3\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416253600, "label": "HSIANG CHING TSAI", "shape": "dot", "size": 10, "title": "MMSI: 416253600\nVessel Name: HSIANG CHING TSAI\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416174500, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416174500\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416241900, "label": "WIN FAR FU NO 1", "shape": "dot", "size": 10, "title": "MMSI: 416241900\nVessel Name: WIN FAR FU NO 1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416252900, "label": "WIN FAR YU NO.2", "shape": "dot", "size": 10, "title": "MMSI: 416252900\nVessel Name: WIN FAR YU NO.2\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005877, "label": "WIN FAR YANG NO.1", "shape": "dot", "size": 10, "title": "MMSI: 416005877\nVessel Name: WIN FAR YANG NO.1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416236900, "label": "SHUENN MAN 626", "shape": "dot", "size": 10, "title": "MMSI: 416236900\nVessel Name: SHUENN MAN 626\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416251600, "label": "SHUENN MAN NO100", "shape": "dot", "size": 10, "title": "MMSI: 416251600\nVessel Name: SHUENN MAN NO100\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416505000, "label": "JENQ DA MING", "shape": "dot", "size": 10, "title": "MMSI: 416505000\nVessel Name: JENQ DA MING\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005531, "label": "YUH SHENG NO.1", "shape": "dot", "size": 10, "title": "MMSI: 416005531\nVessel Name: YUH SHENG NO.1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416246500, "label": "CHIN CHUAN HSING", "shape": "dot", "size": 10, "title": "MMSI: 416246500\nVessel Name: CHIN CHUAN HSING\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416236500, "label": "HSIANG JIN FA", "shape": "dot", "size": 10, "title": "MMSI: 416236500\nVessel Name: HSIANG JIN FA\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416004545, "label": "HSIANG BAI FA", "shape": "dot", "size": 10, "title": "MMSI: 416004545\nVessel Name: HSIANG BAI FA\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 577100000, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 577100000\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 577101000, "label": "FONG TAI 21", "shape": "dot", "size": 10, "title": "MMSI: 577101000\nVessel Name: FONG TAI 21\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 416005846, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 416005846\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412421059, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 412421059\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224754000, "label": "PLAYA DE GALICIA", "shape": "dot", "size": 10, "title": "MMSI: 224754000\nVessel Name: PLAYA DE GALICIA\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 224770000, "label": "PLAYA PESMAR DOS", "shape": "dot", "size": 10, "title": "MMSI: 224770000\nVessel Name: PLAYA PESMAR DOS\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331284, "label": "LURONGYUANYU715", "shape": "dot", "size": 10, "title": "MMSI: 412331284\nVessel Name: LURONGYUANYU715\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412333739, "label": "LURONGYUANYU775", "shape": "dot", "size": 10, "title": "MMSI: 412333739\nVessel Name: LURONGYUANYU775\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412420312, "label": "JIADE1", "shape": "dot", "size": 10, "title": "MMSI: 412420312\nVessel Name: JIADE1\nVessel Type: fishing\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 412331279, "label": "LURONGYUANYU195", "shape": "dot", "size": 10, "title": "MMSI: 412331279\nVessel Name: LURONGYUANYU195\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034570, "label": "Unknown_dark_rdv_1054034570.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034570\nVessel Name: Unknown_dark_rdv_1054034570.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034580, "label": "Unknown_dark_rdv_1054034580.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034580\nVessel Name: Unknown_dark_rdv_1054034580.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034604, "label": "Unknown_dark_rdv_1054034604.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034604\nVessel Name: Unknown_dark_rdv_1054034604.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034663, "label": "Unknown_dark_rdv_1054034663.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034663\nVessel Name: Unknown_dark_rdv_1054034663.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1054034672, "label": "Unknown_dark_rdv_1054034672.0", "shape": "dot", "size": 10, "title": "MMSI: 1054034672\nVessel Name: Unknown_dark_rdv_1054034672.0\nVessel Type: None\nTotal_RDV: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 352349000, "label": "Unknown", "shape": "dot", "size": 10, "title": "MMSI: 352349000\nVessel Name: Unknown\nVessel Type: None\nTotal_RDV: 22"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 353946000, "label": "TAGANROGSKIY ZALIV", "shape": "dot", "size": 10, "title": "MMSI: 353946000\nVessel Name: TAGANROGSKIY ZALIV\nVessel Type: fish_carrier\nTotal_RDV: 72"}]);
+                  edges = new vis.DataSet([{"from": 412549121, "to": 374245000, "width": 1}, {"from": 412549122, "to": 373360000, "width": 1}, {"from": 412549122, "to": 374245000, "width": 1}, {"from": 412354049, "to": 374245000, "width": 1}, {"from": 412435461, "to": 374245000, "width": 1}, {"from": 257621000, "to": 374245000, "width": 1}, {"from": 412421128, "to": 371812000, "width": 1}, {"from": 412421128, "to": 374245000, "width": 1}, {"from": 412435469, "to": 374245000, "width": 1}, {"from": 412421133, "to": 374245000, "width": 1}, {"from": 1054034448, "to": 374245000, "width": 1}, {"from": 412549139, "to": 374245000, "width": 1}, {"from": 412421144, "to": 374245000, "width": 1}, {"from": 412421145, "to": 374245000, "width": 1}, {"from": 416004638, "to": 374245000, "width": 1}, {"from": 224724000, "to": 374245000, "width": 1}, {"from": 412439588, "to": 374245000, "width": 1}, {"from": 416164900, "to": 374245000, "width": 1}, {"from": 412549158, "to": 374245000, "width": 1}, {"from": 412331052, "to": 374245000, "width": 1}, {"from": 412331052, "to": 356609000, "width": 1}, {"from": 412420653, "to": 374245000, "width": 1}, {"from": 412331053, "to": 374245000, "width": 1}, {"from": 412331053, "to": 356609000, "width": 1}, {"from": 412549165, "to": 374245000, "width": 1}, {"from": 412421173, "to": 374245000, "width": 1}, {"from": 412421175, "to": 374245000, "width": 1}, {"from": 412421177, "to": 374245000, "width": 1}, {"from": 412331066, "to": 374245000, "width": 1}, {"from": 412421178, "to": 374245000, "width": 1}, {"from": 416240700, "to": 374245000, "width": 1}, {"from": 416253500, "to": 374245000, "width": 1}, {"from": 416244800, "to": 374245000, "width": 1}, {"from": 412331078, "to": 374245000, "width": 1}, {"from": 412331079, "to": 354458000, "width": 1}, {"from": 412331079, "to": 374245000, "width": 1}, {"from": 412421192, "to": 374245000, "width": 1}, {"from": 416004684, "to": 374245000, "width": 1}, {"from": 412331089, "to": 374245000, "width": 1}, {"from": 412331091, "to": 374245000, "width": 1}, {"from": 416004693, "to": 374245000, "width": 1}, {"from": 412333655, "to": 374245000, "width": 1}, {"from": 416243800, "to": 374245000, "width": 1}, {"from": 1054034010, "to": 374245000, "width": 1}, {"from": 416005723, "to": 374245000, "width": 1}, {"from": 412549215, "to": 374245000, "width": 1}, {"from": 416234600, "to": 374245000, "width": 1}, {"from": 416006763, "to": 374245000, "width": 1}, {"from": 1054034029, "to": 374245000, "width": 1}, {"from": 416005752, "to": 374245000, "width": 1}, {"from": 412331128, "to": 374245000, "width": 1}, {"from": 416004729, "to": 374245000, "width": 1}, {"from": 374245000, "to": 412421114, "width": 1}, {"from": 374245000, "to": 412420378, "width": 1}, {"from": 374245000, "to": 412420953, "width": 1}, {"from": 374245000, "to": 224301000, "width": 1}, {"from": 374245000, "to": 412328784, "width": 1}, {"from": 374245000, "to": 412329404, "width": 1}, {"from": 374245000, "to": 412424702, "width": 1}, {"from": 374245000, "to": 412424547, "width": 1}, {"from": 374245000, "to": 412200335, "width": 1}, {"from": 374245000, "to": 412200336, "width": 1}, {"from": 374245000, "to": 412549049, "width": 1}, {"from": 374245000, "to": 412420531, "width": 1}, {"from": 374245000, "to": 412420532, "width": 1}, {"from": 374245000, "to": 412329696, "width": 1}, {"from": 374245000, "to": 412421356, "width": 1}, {"from": 374245000, "to": 224374000, "width": 1}, {"from": 374245000, "to": 224710000, "width": 1}, {"from": 374245000, "to": 412336489, "width": 1}, {"from": 374245000, "to": 412549051, "width": 1}, {"from": 374245000, "to": 412328799, "width": 1}, {"from": 374245000, "to": 412326884, "width": 1}, {"from": 374245000, "to": 412328785, "width": 1}, {"from": 374245000, "to": 224079000, "width": 1}, {"from": 374245000, "to": 416004853, "width": 1}, {"from": 374245000, "to": 412420581, "width": 1}, {"from": 374245000, "to": 412677320, "width": 1}, {"from": 374245000, "to": 412660070, "width": 1}, {"from": 374245000, "to": 100900004, "width": 1}, {"from": 374245000, "to": 224266000, "width": 1}, {"from": 374245000, "to": 412328788, "width": 1}, {"from": 374245000, "to": 412320029, "width": 1}, {"from": 374245000, "to": 740338000, "width": 1}, {"from": 374245000, "to": 740358000, "width": 1}, {"from": 374245000, "to": 416006494, "width": 1}, {"from": 374245000, "to": 412549112, "width": 1}, {"from": 374245000, "to": 412549299, "width": 1}, {"from": 374245000, "to": 416004857, "width": 1}, {"from": 374245000, "to": 224897000, "width": 1}, {"from": 374245000, "to": 416004981, "width": 1}, {"from": 374245000, "to": 412420597, "width": 1}, {"from": 374245000, "to": 412421041, "width": 1}, {"from": 374245000, "to": 412420315, "width": 1}, {"from": 374245000, "to": 412333796, "width": 1}, {"from": 374245000, "to": 412333797, "width": 1}, {"from": 374245000, "to": 412333751, "width": 1}, {"from": 374245000, "to": 412326889, "width": 1}, {"from": 374245000, "to": 412326887, "width": 1}, {"from": 374245000, "to": 412206008, "width": 1}, {"from": 374245000, "to": 416245500, "width": 1}, {"from": 374245000, "to": 416567000, "width": 1}, {"from": 374245000, "to": 416251900, "width": 1}, {"from": 374245000, "to": 412549095, "width": 1}, {"from": 374245000, "to": 412549404, "width": 1}, {"from": 374245000, "to": 412331001, "width": 1}, {"from": 374245000, "to": 416008893, "width": 1}, {"from": 374245000, "to": 412549383, "width": 1}, {"from": 374245000, "to": 412331173, "width": 1}, {"from": 374245000, "to": 412331209, "width": 1}, {"from": 374245000, "to": 416004892, "width": 1}, {"from": 374245000, "to": 412420313, "width": 1}, {"from": 374245000, "to": 412424703, "width": 1}, {"from": 374245000, "to": 412549348, "width": 1}, {"from": 374245000, "to": 412333752, "width": 1}, {"from": 374245000, "to": 412420573, "width": 1}, {"from": 374245000, "to": 416171800, "width": 1}, {"from": 374245000, "to": 416250700, "width": 1}, {"from": 374245000, "to": 412549116, "width": 1}, {"from": 374245000, "to": 412420471, "width": 1}, {"from": 374245000, "to": 412549277, "width": 1}, {"from": 374245000, "to": 412549278, "width": 1}, {"from": 374245000, "to": 416180600, "width": 1}, {"from": 374245000, "to": 412549276, "width": 1}, {"from": 374245000, "to": 412549275, "width": 1}, {"from": 374245000, "to": 412420799, "width": 1}, {"from": 374245000, "to": 1054033747, "width": 1}, {"from": 374245000, "to": 1054033781, "width": 1}, {"from": 374245000, "to": 1054033810, "width": 1}, {"from": 374245000, "to": 1054033816, "width": 1}, {"from": 374245000, "to": 1054033843, "width": 1}, {"from": 374245000, "to": 412549053, "width": 1}, {"from": 374245000, "to": 412549052, "width": 1}, {"from": 374245000, "to": 412420578, "width": 1}, {"from": 374245000, "to": 416240500, "width": 1}, {"from": 374245000, "to": 416312000, "width": 1}, {"from": 374245000, "to": 416251800, "width": 1}, {"from": 374245000, "to": 416241500, "width": 1}, {"from": 374245000, "to": 416005995, "width": 1}, {"from": 374245000, "to": 416004564, "width": 1}, {"from": 374245000, "to": 416239600, "width": 1}, {"from": 374245000, "to": 416350000, "width": 1}, {"from": 374245000, "to": 416005931, "width": 1}, {"from": 374245000, "to": 416242600, "width": 1}, {"from": 374245000, "to": 416253700, "width": 1}, {"from": 374245000, "to": 416007978, "width": 1}, {"from": 374245000, "to": 416005006, "width": 1}, {"from": 374245000, "to": 416005510, "width": 1}, {"from": 374245000, "to": 416004889, "width": 1}, {"from": 374245000, "to": 1054034089, "width": 1}, {"from": 374245000, "to": 416004775, "width": 1}, {"from": 374245000, "to": 416253600, "width": 1}, {"from": 374245000, "to": 416174500, "width": 1}, {"from": 374245000, "to": 416241900, "width": 1}, {"from": 374245000, "to": 416252900, "width": 1}, {"from": 374245000, "to": 416005877, "width": 1}, {"from": 374245000, "to": 416236900, "width": 1}, {"from": 374245000, "to": 416251600, "width": 1}, {"from": 374245000, "to": 416505000, "width": 1}, {"from": 374245000, "to": 416005531, "width": 1}, {"from": 374245000, "to": 416246500, "width": 1}, {"from": 374245000, "to": 416236500, "width": 1}, {"from": 374245000, "to": 416004545, "width": 1}, {"from": 374245000, "to": 577100000, "width": 1}, {"from": 374245000, "to": 577101000, "width": 1}, {"from": 374245000, "to": 416005846, "width": 1}, {"from": 374245000, "to": 412421059, "width": 1}, {"from": 374245000, "to": 224754000, "width": 1}, {"from": 374245000, "to": 224770000, "width": 1}, {"from": 374245000, "to": 412331284, "width": 1}, {"from": 374245000, "to": 412333739, "width": 1}, {"from": 374245000, "to": 412420312, "width": 1}, {"from": 374245000, "to": 412331279, "width": 1}, {"from": 374245000, "to": 1054034570, "width": 1}, {"from": 374245000, "to": 1054034580, "width": 1}, {"from": 374245000, "to": 1054034604, "width": 1}, {"from": 374245000, "to": 1054034663, "width": 1}, {"from": 374245000, "to": 1054034672, "width": 1}, {"from": 412549275, "to": 356609000, "width": 1}, {"from": 412549276, "to": 356609000, "width": 1}, {"from": 412549278, "to": 356609000, "width": 1}, {"from": 371812000, "to": 412200336, "width": 1}, {"from": 371812000, "to": 352349000, "width": 1}, {"from": 371812000, "to": 412421041, "width": 1}, {"from": 371812000, "to": 412424702, "width": 1}, {"from": 371812000, "to": 412424547, "width": 1}, {"from": 371812000, "to": 412420799, "width": 1}, {"from": 412420799, "to": 353946000, "width": 1}, {"from": 352349000, "to": 412549116, "width": 1}, {"from": 352349000, "to": 356609000, "width": 1}, {"from": 412328799, "to": 356609000, "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+                    network.on("click", neighbourhoodHighlight);
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
